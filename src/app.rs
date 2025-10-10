@@ -1,52 +1,51 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
-use cosmic::app::{Core, Task};
-use cosmic::iced::window::Id;
-use cosmic::iced::Limits;
-use cosmic::iced_winit::commands::popup::{destroy_popup, get_popup};
-use cosmic::widget::{self, settings};
-use cosmic::{Application, Element};
+use cosmic::{
+    Action, Application, Element,
+    app::{Core, Task},
+    cosmic_config::{ConfigGet, ConfigSet},
+    iced::{Limits, window::Id},
+    iced_winit::commands::popup::{destroy_popup, get_popup},
+    widget::{self},
+};
+use cosmic_settings_config::window_rules;
 
-use crate::fl;
+use crate::{fl, wayland::toplevel::ToplevelsInfo};
 
-/// This is the struct that represents your application.
-/// It is used to define the data that will be used by your application.
 #[derive(Default)]
-pub struct YourApp {
-    /// Application state which is managed by the COSMIC runtime.
+pub struct App {
     core: Core,
-    /// The popup id.
     popup: Option<Id>,
-    /// Example row toggler.
-    example_row: bool,
+    active_view: Views,
+    apps_info: Vec<ToplevelsInfo>,
 }
 
-/// This is the enum that contains all the possible variants that your application will need to transmit messages.
-/// This is used to communicate between the different parts of your application.
-/// If your application does not need to send messages, you can use an empty enum or `()`.
+#[derive(Debug, Default)]
+pub enum Views {
+    #[default]
+    Main,
+    Manage(usize),
+}
+
 #[derive(Debug, Clone)]
 pub enum Message {
     TogglePopup,
     PopupClosed(Id),
-    ToggleExampleRow(bool),
+    RefreshToplevels,
+    ChangeView(usize),
+    BackToMain,
+    AddWithTitle(String),
+    AddWithAPPID(String),
 }
 
-/// Implement the `Application` trait for your application.
-/// This is where you define the behavior of your application.
-///
-/// The `Application` trait requires you to define the following types and constants:
-/// - `Executor` is the async executor that will be used to run your application's commands.
-/// - `Flags` is the data that your application needs to use before it starts.
-/// - `Message` is the enum that contains all the possible variants that your application will need to transmit messages.
-/// - `APP_ID` is the unique identifier of your application.
-impl Application for YourApp {
+impl Application for App {
     type Executor = cosmic::executor::Default;
 
     type Flags = ();
 
     type Message = Message;
 
-    const APP_ID: &'static str = "com.example.CosmicAppletTemplate";
+    const APP_ID: &'static str = "dev.heppen.cte";
 
     fn core(&self) -> &Core {
         &self.core
@@ -56,59 +55,44 @@ impl Application for YourApp {
         &mut self.core
     }
 
-    /// This is the entry point of your application, it is where you initialize your application.
-    ///
-    /// Any work that needs to be done before the application starts should be done here.
-    ///
-    /// - `core` is used to passed on for you by libcosmic to use in the core of your own application.
-    /// - `flags` is used to pass in any data that your application needs to use before it starts.
-    /// - `Command` type is used to send messages to your application. `Command::none()` can be used to send no messages to your application.
     fn init(core: Core, _flags: Self::Flags) -> (Self, Task<Self::Message>) {
-        let app = YourApp {
+        let app = App {
             core,
             ..Default::default()
         };
 
-        (app, Task::none())
+        (
+            app,
+            Task::future(async move { Action::App(Message::RefreshToplevels) }),
+        )
     }
 
     fn on_close_requested(&self, id: Id) -> Option<Message> {
         Some(Message::PopupClosed(id))
     }
 
-    /// This is the main view of your application, it is the root of your widget tree.
-    ///
-    /// The `Element` type is used to represent the visual elements of your application,
-    /// it has a `Message` associated with it, which dictates what type of message it can send.
-    ///
-    /// To get a better sense of which widgets are available, check out the `widget` module.
-    fn view(&self) -> Element<Self::Message> {
+    fn view(&self) -> Element<'_, Self::Message> {
         self.core
             .applet
-            .icon_button("display-symbolic")
+            .icon_button("appointment-new-symbolic")
             .on_press(Message::TogglePopup)
             .into()
     }
 
-    fn view_window(&self, _id: Id) -> Element<Self::Message> {
-        let content_list = widget::list_column()
-            .padding(5)
-            .spacing(0)
-            .add(settings::item(
-                fl!("example-row"),
-                widget::toggler(self.example_row).on_toggle(Message::ToggleExampleRow),
-            ));
+    fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
+        let view = match self.active_view {
+            Views::Main => self.list_view(),
+            Views::Manage(idx) => self.manage_view(idx),
+        };
 
-        self.core.applet.popup_container(content_list).into()
+        self.core.applet.popup_container(view).into()
     }
 
-    /// Application messages are handled here. The application state can be modified based on
-    /// what message was received. Commands may be returned for asynchronous execution on a
-    /// background thread managed by the application's executor.
     fn update(&mut self, message: Self::Message) -> Task<Self::Message> {
         match message {
             Message::TogglePopup => {
                 return if let Some(p) = self.popup.take() {
+                    self.active_view = Views::Main;
                     destroy_popup(p)
                 } else {
                     let new_id = Id::unique();
@@ -126,19 +110,115 @@ impl Application for YourApp {
                         .min_height(200.0)
                         .max_height(1080.0);
                     get_popup(popup_settings)
-                }
+                };
             }
             Message::PopupClosed(id) => {
                 if self.popup.as_ref() == Some(&id) {
                     self.popup = None;
                 }
             }
-            Message::ToggleExampleRow(toggled) => self.example_row = toggled,
+            Message::RefreshToplevels => {
+                self.apps_info = crate::wayland::toplevel::refresh_toplevels();
+            }
+            Message::BackToMain => self.active_view = Views::Main,
+            Message::ChangeView(toplevel_index) => match &self.active_view {
+                Views::Main => self.active_view = Views::Manage(toplevel_index),
+                Views::Manage(_) => self.active_view = Views::Main,
+            },
+            Message::AddWithTitle(title) => {
+                self.append_to_config(".*".to_string(), title);
+            }
+            Message::AddWithAPPID(id) => {
+                self.append_to_config(id, "".to_string());
+            }
         }
         Task::none()
     }
 
     fn style(&self) -> Option<cosmic::iced_runtime::Appearance> {
         Some(cosmic::applet::style())
+    }
+}
+
+impl App {
+    fn list_view(&self) -> Element<'_, Message> {
+        let mut content_list = widget::list_column()
+            .padding(5)
+            .spacing(0)
+            .add(widget::button::standard("Refresh").on_press(Message::RefreshToplevels));
+
+        for (idx, app) in self.apps_info.iter().enumerate() {
+            content_list = content_list.add(widget::settings::item_row(vec![
+                widget::button::standard(fl!("more"))
+                    .on_press(Message::ChangeView(idx))
+                    .into(),
+                widget::text(app.title.clone()).into(),
+            ]));
+        }
+
+        content_list.into()
+    }
+
+    fn manage_view(&self, index: usize) -> Element<'_, Message> {
+        let toplevel = &self.apps_info[index];
+
+        let controls = widget::row()
+            .spacing(12)
+            .padding(12)
+            .push(widget::button::standard(fl!("back")).on_press(Message::BackToMain))
+            .push(
+                widget::button::standard(fl!("add-with-title"))
+                    .on_press(Message::AddWithTitle(toplevel.title.clone())),
+            )
+            .push(
+                widget::button::standard(fl!("add-with-appid"))
+                    .on_press(Message::AddWithAPPID(toplevel.app_id.clone())),
+            );
+
+        let col = widget::column()
+            .spacing(12)
+            .padding(12)
+            .push(widget::text::title4(fl!("title")))
+            .push(widget::text(toplevel.title.clone()))
+            .push(widget::text::title4(fl!("appid")))
+            .push(widget::text(toplevel.app_id.clone()));
+
+        widget::list_column()
+            .padding(5)
+            .spacing(5)
+            .add(controls)
+            .add(col)
+            .into()
+    }
+
+    fn append_to_config(&self, appid: String, title: String) {
+        let window_rules_context =
+            window_rules::context().expect("Failed to load window rules config");
+
+        let mut rules = window_rules_context
+            .get::<Vec<window_rules::PreciseApplicationException>>("tiling_exception_custom")
+            .unwrap_or_else(|why| {
+                if why.is_err()
+                    && let cosmic::cosmic_config::Error::GetKey(_, err) = &why
+                    && err.kind() != std::io::ErrorKind::NotFound
+                {
+                    eprintln!("tiling exceptions custom config error: {why}");
+                    return Vec::new();
+                }
+                eprintln!("tiling exceptions custom config not present: {why}");
+                Vec::new()
+            });
+
+        let new_exception = window_rules::PreciseApplicationException {
+            appid,
+            title,
+            enabled: true,
+        };
+
+        rules.push(new_exception);
+
+        window_rules_context
+            .set("tiling_exception_custom", rules)
+            .expect("cannot write config")
     }
 }

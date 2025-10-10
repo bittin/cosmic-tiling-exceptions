@@ -1,0 +1,10 @@
+app-title = COSMIC Tiling Exceptions
+add-with-title = Add with Title
+add-with-appid = Add with APP ID
+no-title = No Title
+no-appid = No APP ID
+more = More
+back = Back
+title = Title
+appid = APP ID
+remove = Remove

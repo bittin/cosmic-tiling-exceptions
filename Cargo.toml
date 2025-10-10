@@ -1,22 +1,39 @@
 [package]
-name = "cosmic-applet-template"
+name = "cosmic-tiling-exceptions"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 license = "GPL-3.0"
-rust-version = "1.80"
 
 [dependencies]
-i18n-embed-fl = "0.8"
+anyhow = "1.0.99"
+memmap2 = "0.9.8"
+image = "0.25"
+i18n-embed-fl = "0.10"
 open = "5.1.3"
 rust-embed = "8.3.0"
+wayland-client = { version = "0.31.11" }
+sctk = { package = "smithay-client-toolkit", version = "0.20.0" }
+wayland-protocols = "0.32.9"
+gbm = "0.18.0"
+futures = "0.3"
+rustix = { version = "1.1.2", features = ["fs"] }
+
+[dependencies.cosmic-client-toolkit]
+git = "https://github.com/pop-os/cosmic-protocols.git"
+
+[dependencies.cosmic-protocols]
+git = "https://github.com/pop-os/cosmic-protocols.git"
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic.git"
 default-features = false
-features = ["applet", "tokio", "wayland"]
+features = ["applet", "tokio", "wayland", "xdg-portal"]
+
+[dependencies.cosmic-settings-config]
+git = "https://github.com/pop-os/cosmic-settings-daemon"
 
 [dependencies.i18n-embed]
-version = "0.14"
+version = "0.16"
 features = ["fluent-system", "desktop-requester"]
 
 # Uncomment to test a locally-cloned libcosmic
