@@ -3,8 +3,10 @@
 use cosmic::{
     Action, Application, Element,
     app::{Core, Task},
+    applet::padded_control,
     cosmic_config::{ConfigGet, ConfigSet},
     iced::{Limits, window::Id},
+    iced_widget::Scrollable,
     iced_winit::commands::popup::{destroy_popup, get_popup},
     widget::{self},
 };
@@ -45,7 +47,7 @@ impl Application for App {
 
     type Message = Message;
 
-    const APP_ID: &'static str = "dev.heppen.cte";
+    const APP_ID: &'static str = "dev.heppen.tiling_exception_custom";
 
     fn core(&self) -> &Core {
         &self.core
@@ -85,7 +87,11 @@ impl Application for App {
             Views::Manage(idx) => self.manage_view(idx),
         };
 
-        self.core.applet.popup_container(view).into()
+        self.core
+            .applet
+            .popup_container(view)
+            .limits(Limits::NONE.max_width(720.0).max_height(360.0))
+            .into()
     }
 
     fn update(&mut self, message: Self::Message) -> Task<Self::Message> {
@@ -142,10 +148,15 @@ impl Application for App {
 
 impl App {
     fn list_view(&self) -> Element<'_, Message> {
-        let mut content_list = widget::list_column()
-            .padding(5)
-            .spacing(0)
-            .add(widget::button::standard("Refresh").on_press(Message::RefreshToplevels));
+        let mut content_list = widget::settings::section().add(
+            widget::settings::item_row(vec![
+                widget::text(fl!("app-title")).into(),
+                widget::button::suggested(fl!("refresh"))
+                    .on_press(Message::RefreshToplevels)
+                    .into(),
+            ])
+            .spacing(12),
+        );
 
         for (idx, app) in self.apps_info.iter().enumerate() {
             content_list = content_list.add(widget::settings::item_row(vec![
@@ -156,7 +167,11 @@ impl App {
             ]));
         }
 
-        content_list.into()
+        widget::column()
+            .push(padded_control(widget::Container::new(Scrollable::new(
+                content_list,
+            ))))
+            .into()
     }
 
     fn manage_view(&self, index: usize) -> Element<'_, Message> {

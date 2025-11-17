@@ -5,6 +5,7 @@ no-title = No Title
 no-appid = No APP ID
 more = More
 back = Back
+refresh = Refresh
 title = Title
 appid = APP ID
 remove = Remove

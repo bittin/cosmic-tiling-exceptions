@@ -5,6 +5,7 @@ no-title = Brak tytułu
 no-appid = Brak identyfikatora
 more = Więcej
 back = Powrót
+refresh = Odśwież
 title = Tytuł
 appid = APP ID
 remove = Usuń
