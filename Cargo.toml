@@ -1,5 +1,5 @@
 [package]
-name = "cosmic-tiling-exceptions"
+name = "dev_heppen_tiling_exception_custom"
 version = "0.1.0"
 edition = "2024"
 license = "GPL-3.0"

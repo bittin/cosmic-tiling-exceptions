@@ -1,30 +1,24 @@
-# COSMIC Applet Template
+# COSMIC ext Custom Tiling Exceptions
 
-A template for COSMIC applets.
+Currently COSMIC desktop does not have direct way to set windows as floating permanently. We need to manually add APPs IDs or APP titles to custom COSMIC config.
 
-## Getting Started
+This applet trying to simplify this process. If you have window open, this applet after refreshing will look into your opened windows, list them, and allow you by simply button press to add new exception to compositor's config `tiling_exception_custom`.
 
-To get started, click the "Use this template" button above. This will create a new repository in your account with the contents of this template.
+# Building
 
-Once you have created a new repository from this template, you can clone it to your local machine and start developing your COSMIC applet.
+`make build`
 
-## Development
+# Running 
 
-When you open the repository in your code editor, you will see a lot of comments in the code. These comments are there to help you get a basic understanding of what each part of the code does.
+`make run`
 
-Once you feel comfortable with it, refer back to the [COSMIC documentation](https://pop-os.github.io/libcosmic/cosmic/) for more information on how to build COSMIC applets.
+or `make all` -> to build and run in one command.
 
-## Install
+# Installing
 
-To install your COSMIC applet, you will need [just](https://github.com/casey/just), if you're on Pop!\_OS, you can install it with the following command:
+`sudo make install`
 
-```sh
-sudo apt install just
-```
+# Uninstalling
 
-After you install it, you can run the following commands to build and install your applet:
+`sudo make uninstall`
 
-```sh
-just build-release
-sudo just install
-```
