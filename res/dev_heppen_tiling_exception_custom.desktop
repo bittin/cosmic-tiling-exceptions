@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=COSMIC ext Custom Tiling Exceptions
-Exec=cosmic-tiling-exceptions
+Exec=dev_heppen_tiling_exception_custom
 Terminal=false
 Type=Application
 StartupNotify=true
