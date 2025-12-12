@@ -1,0 +1,11 @@
+app-title = COSMIC Tiling Exceptions
+add-with-title = Lägg till med titel
+add-with-appid = Lägg till med APP ID
+no-title = Ingen titel
+no-appid = Inget APP ID
+more = Mer
+back = Tillbaka
+refresh = Uppdatera
+title = Titel
+appid = APP ID
+remove = Ta bort
